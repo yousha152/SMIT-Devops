@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Calculator</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #090909;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            padding: 35px 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1050px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            color: #ff7900;
+            font-size: 2.3rem;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #aaa;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #292929;
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .display {
+            width: 100%;
+            min-height: 75px;
+            background: #080808;
+            color: #fff;
+            border: 2px solid #ff7900;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1.8rem;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        .display:focus {
+            box-shadow: 0 0 0 3px rgba(255, 121, 0, 0.15);
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 11px;
+            min-height: 58px;
+            font-size: 1.15rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.12s, filter 0.12s;
+        }
+
+        button:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        .number {
+            background: #252525;
+            color: #fff;
+        }
+
+        .operator {
+            background: #ff7900;
+            color: #090909;
+        }
+
+        .action {
+            background: #444;
+            color: #fff;
+        }
+
+        .equals {
+            background: #ff9d3d;
+            color: #090909;
+        }
+
+        .current-result {
+            margin-top: 15px;
+            padding: 14px;
+            background: #0e0e0e;
+            border: 1px solid #292929;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .current-result-label {
+            color: #777;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+
+        .current-result-value {
+            color: #ff7900;
+            font-size: 1.5rem;
+            font-weight: bold;
+            word-break: break-word;
+        }
+
+        .history-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .history-title h2 {
+            color: #ff7900;
+        }
+
+        .clear-btn {
+            min-height: auto;
+            padding: 9px 13px;
+            background: #2a2a2a;
+            color: #ff7900;
+            font-size: 0.85rem;
+        }
+
+        .history {
+            max-height: 480px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            border-left: 3px solid #ff7900;
+            background: #0e0e0e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .expression {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .result {
+            color: #ff7900;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin: 4px 0;
+            word-break: break-word;
+        }
+
+        .time {
+            color: #666;
+            font-size: 0.75rem;
+        }
+
+        .empty {
+            color: #666;
+            text-align: center;
+            padding: 40px 10px;
+        }
+
+        .error {
+            background: #351313;
+            color: #ff8585;
+            border: 1px solid #6b2525;
+            border-radius: 10px;
+            padding: 11px;
+            margin-bottom: 15px;
+        }
+
+        .hint {
+            color: #777;
+            margin-top: 13px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Calculator</h1>
+        <p>FastAPI + Jinja • JSON History Database</p>
+    </header>
+
+    <main class="app">
+
+        <!-- Calculator -->
+        <section class="card">
+
+            {% if error %}
+                <div class="error">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form id="calculator-form" method="post" action="/calculate">
+
+                <input
+                    id="display"
+                    class="display"
+                    type="text"
+                    name="expression"
+                    value="{{ expression or '' }}"
+                    placeholder="0"
+                    autocomplete="off"
+                    autofocus
+                >
+
+                <div class="buttons">
+
+                    <button
+                        type="button"
+                        class="action"
+                        onclick="clearDisplay()"
+                    >
+                        AC
+                    </button>
+
+                    <button
+                        type="button"
+                        class="action"
+                        onclick="backspace()"
+                    >
+                        ⌫
+                    </button>
+
+                    <button
+                        type="button"
+                        class="operator"
+                        onclick="appendValue('%')"
+                    >
+                        %
+                    </button>
+
+                    <button
+                        type="button"
+                        class="operator"
+                        onclick="appendValue('/')"
+                    >
+                        ÷
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('7')"
+                    >
+                        7
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('8')"
+                    >
+                        8
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('9')"
+                    >
+                        9
+                    </button>
+
+                    <button
+                        type="button"
+                        class="operator"
+                        onclick="appendValue('*')"
+                    >
+                        ×
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('4')"
+                    >
+                        4
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('5')"
+                    >
+                        5
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('6')"
+                    >
+                        6
+                    </button>
+
+                    <button
+                        type="button"
+                        class="operator"
+                        onclick="appendValue('-')"
+                    >
+                        −
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('1')"
+                    >
+                        1
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('2')"
+                    >
+                        2
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('3')"
+                    >
+                        3
+                    </button>
+
+                    <button
+                        type="button"
+                        class="operator"
+                        onclick="appendValue('+')"
+                    >
+                        +
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('0')"
+                    >
+                        0
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('.')"
+                    >
+                        .
+                    </button>
+
+                    <button
+                        type="button"
+                        class="number"
+                        onclick="appendValue('**')"
+                    >
+                        ^
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="equals"
+                    >
+                        =
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <!-- Current Result -->
+            {% if current_result is not none %}
+
+                <div class="current-result">
+
+                    <div class="current-result-label">
+                        Current Result
+                    </div>
+
+                    <div class="current-result-value">
+                         {{ current_result }}
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            <p class="hint">
+                Keyboard supported • Enter = calculate • Esc = clear
+            </p>
+
+        </section>
+
+
+        <!-- History -->
+        <section class="card">
+
+            <div class="history-title">
+
+                <h2>History</h2>
+
+                <form
+                    method="post"
+                    action="/clear"
+                    onsubmit="return confirm('Clear all calculation history?');"
+                >
+
+                    <button
+                        type="submit"
+                        class="clear-btn"
+                    >
+                        Clear All
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div class="history">
+
+                {% if history %}
+
+                    {% for item in history %}
+
+                        <div class="history-item">
+
+                            <div class="expression">
+                                {{ item.expression }}
+                            </div>
+
+                            <div class="result">
+                                = {{ item.result }}
+                            </div>
+
+                            <div class="time">
+                                {{ item.timestamp }}
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="empty">
+                        No calculations yet.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script>
+
+    const display = document.getElementById("display");
+
+
+    function appendValue(value) {
+
+        display.value += value;
+
+        display.focus();
+
+    }
+
+
+    function clearDisplay() {
+
+        display.value = "";
+
+        display.focus();
+
+    }
+
+
+    function backspace() {
+
+        display.value = display.value.slice(0, -1);
+
+        display.focus();
+
+    }
+
+
+    document.addEventListener("keydown", function(event) {
+
+        if (event.key === "Escape") {
+
+            clearDisplay();
+
+        }
+
+        if (event.key === "Enter") {
+
+            document.getElementById("calculator-form").submit();
+
+        }
+
+    });
+
+</script>
+
+</body>
+</html>
